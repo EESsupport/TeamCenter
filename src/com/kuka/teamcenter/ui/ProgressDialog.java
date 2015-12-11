@@ -44,15 +44,19 @@ public class ProgressDialog extends JDialog implements ActionListener {
         progress.setStringPainted(true);
         progress.setFont(progress.getFont().deriveFont(24f));
 
-        Timer timer = new Timer(TIMER_DELAY,e -> {
-            if(!isIndeterminate)
-                return;
-            int value=progress.getValue();
-            value=value>=100?0:value+1;
+        Timer timer = new Timer(TIMER_DELAY, new ActionListener(){
 
-            progress.setValue(value);
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+	            if(!isIndeterminate)
+	                return;
+	            int value=progress.getValue();
+	            value=value>=100?0:value+1;
+
+	            progress.setValue(value);
+			}
+        	
         });
-
         timer.start();
         setSize(350,350);
         setLocationRelativeTo(parent);

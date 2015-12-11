@@ -4,7 +4,7 @@ import com.kuka.teamcenter.ui.MainWindow;
 
 import javax.swing.*;
 
-import groovy.swing.LookAndFeelHelper;
+//import groovy.swing.LookAndFeelHelper;
 import org.flexdock.docking.DockingManager;
 import org.flexdock.util.SwingUtility;
 

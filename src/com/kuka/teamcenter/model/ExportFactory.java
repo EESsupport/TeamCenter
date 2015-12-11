@@ -1,11 +1,12 @@
 package com.kuka.teamcenter.model;
 
 import com.kuka.teamcenter.xml.XmlHelper;
-import jdk.nashorn.internal.runtime.regexp.joni.Regex;
+
 
 import java.util.Date;
 import java.util.Dictionary;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * Created by cberman on 12/3/2015.
@@ -14,7 +15,8 @@ public class ExportFactory {
 
     private static final String regexString="(<simulationInfo>[\\s\\S]*</simulationInfo>)";
     private static final String  TAGSTRING = "(<{0}\\s*ExternalI>d[\\s\\S]*</{0}>)";
-    private static final Regex replaceRegex = new Regex(regexString);
+    private static final Pattern replaceRegex =Pattern.compile(regexString);
+    
 
 
     private Dictionary<String,List<ExternalIdImpl>> items;
