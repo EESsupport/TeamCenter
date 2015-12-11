@@ -4,15 +4,20 @@ import com.kuka.teamcenter.actions.CreateRelations;
 import com.kuka.teamcenter.client.ILoginInfo;
 import com.kuka.teamcenter.client.LoginInfo;
 import com.kuka.teamcenter.client.Session;
+import com.kuka.teamcenter.client.Session.OnSessionInfoChangedListener;
 import com.kuka.teamcenter.model.ExportFactory;
 import com.kuka.teamcenter.queries.Query;
 import com.kuka.teamcenter.queries.SavedQuery;
 import com.kuka.teamcenter.soa.DataManagement;
 import com.teamcenter.soa.client.model.ModelObject;
 import org.flexdock.docking.Dockable;
+import org.flexdock.docking.DockingConstants;
+import org.flexdock.docking.DockingManager;
+import org.flexdock.docking.defaults.DefaultDockingPort;
 import org.flexdock.util.SwingUtility;
 
 import javax.swing.*;
+import javax.swing.border.LineBorder;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import java.awt.*;
@@ -78,19 +83,31 @@ public class MainWindow
     }
 
      public  void addComponentsToPane(Container pane){
+    	 
+    	 pane.setLayout(new BorderLayout(3,3));
+    	 
+    	
+    	 TeamCenterPanel leftComponent = new TeamCenterPanel();
+    	 pane.add(leftComponent.getPort(),BorderLayout.WEST);
+   	 
+    	 
+    	JComponent northComponent = DockingUtil.createDockableComponent("Top Panel");
+ 		DefaultDockingPort northPort = DockingUtil.createDockingPort();
+ 		connectToDockingPort(northComponent, northPort);
+ 		pane.add(northPort, BorderLayout.NORTH);
+ 		
+ 		JComponent rightComponent = DockingUtil.createDockableComponent("Right Panel");
+ 		DefaultDockingPort rightPort = DockingUtil.createDockingPort();
+ 		connectToDockingPort(rightComponent, rightPort);
+ 		pane.add(rightPort, BorderLayout.EAST);
+ 		
+ 		JComponent bottomComponent = DockingUtil.createDockableComponent("Bottom Panel");
+ 		DefaultDockingPort bottomPort = DockingUtil.createDockingPort();
+ 		connectToDockingPort(bottomComponent, bottomPort);
+ 		pane.add(bottomPort, BorderLayout.SOUTH);
 
-        MyDockingPort dockingPort = new MyDockingPort();
+        
 
-
-        if (!(pane.getLayout() instanceof BorderLayout)) {
-            pane.add(new JLabel("Container doesn't use BorderLayout!"));
-            return;
-        }
-
-        if (RIGHT_TO_LEFT) {
-            pane.setComponentOrientation(
-                    java.awt.ComponentOrientation.RIGHT_TO_LEFT);
-        }
         JPanel buttonPanel = new JPanel(new FlowLayout(),false);
 
 
@@ -131,20 +148,25 @@ public class MainWindow
         testButton = new Button(TEST,this,KeyEvent.VK_T,false);
 
         buttonPanel.add(testButton);
-
-        pane.add(buttonPanel, BorderLayout.PAGE_START);
+        northComponent.add(buttonPanel,BorderLayout.PAGE_START);
+ //       pane.add(buttonPanel, BorderLayout.PAGE_START);
 
         JPanel centerPanel = new JPanel();
         centerPanel.setLayout(new BoxLayout(centerPanel,BoxLayout.PAGE_AXIS));
         // Add Messages Window
 //        centerPanel.add(debugWindow);
         centerPanel.add(new JScrollPane(messageTable));
+        
+        
+
         itemWindow = new ItemWindow();
         centerPanel.add(itemWindow);
-        pane.add(centerPanel,BorderLayout.CENTER);
+        northComponent.add(centerPanel,BorderLayout.CENTER);
+//        pane.add(centerPanel,BorderLayout.CENTER);
 
 
         pane.add(new StatusBar(),BorderLayout.PAGE_END);
+        
 
 
 
@@ -169,7 +191,15 @@ public class MainWindow
                 q.queryItems();
                 firePropertyChange("delete","","There are " + uids.length + " uids");
 
-                DataManagement dm = new DataManagement((sender, message) -> firePropertyChange(sender,"",message));
+                DataManagement dm = new DataManagement(new OnSessionInfoChangedListener(){
+
+					@Override
+					public void OnInfoChanged(String sender, Object message) {
+						firePropertyChange(sender,"",message);
+						
+					}
+                	
+                });
                 return dm.loadItems(uids);
 
             }
@@ -179,19 +209,24 @@ public class MainWindow
                 deleteButton.setEnabled(true);
             }
         };
-        worker.addPropertyChangeListener(evt -> {
-            String name=evt.getPropertyName();
-            switch(name){
-                case "Loaded":
+        worker.addPropertyChangeListener(new PropertyChangeListener(){
 
-                    itemWindow.addItems((ArrayList)evt.getNewValue());
-                    break;
-                default:
-                    addMessage(name,evt.getNewValue());
-                    break;
-            }
+			@Override
+			public void propertyChange(PropertyChangeEvent evt) {
+				String name=evt.getPropertyName();
+	            switch(name){
+	                case "Loaded":
 
+	                    itemWindow.addItems((ArrayList)evt.getNewValue());
+	                    break;
+	                default:
+	                    addMessage(name,evt.getNewValue());
+	                    break;
+	            }
+			}
+        	
         });
+        
 //        deleteButton.setEnabled(false);
         worker.execute();
 
@@ -213,7 +248,17 @@ public class MainWindow
                 Query q = new Query();
                 q.queryItems();
                 firePropertyChange("delete","","There are " + uids.length + " uids");
-                DataManagement dm = new DataManagement((sender, message) -> firePropertyChange(sender,"",message));
+                
+                DataManagement dm = new DataManagement(new OnSessionInfoChangedListener(){
+
+					@Override
+					public void OnInfoChanged(String sender, Object message) {
+						firePropertyChange(sender,"",message);						
+					}
+                	
+                });
+                
+
                 return dm.deleteItems(uids);
             }
 
@@ -222,14 +267,22 @@ public class MainWindow
                 deleteButton.setEnabled(true);
             }
         };
-        worker.addPropertyChangeListener(evt -> addMessage(evt.getPropertyName(),evt.getNewValue()));
+        
+        worker.addPropertyChangeListener(new PropertyChangeListener(){
+
+			@Override
+			public void propertyChange(PropertyChangeEvent evt) {
+				addMessage(evt.getPropertyName(),evt.getNewValue());				
+			}
+        	
+        });
 //        deleteButton.setEnabled(false);
         worker.execute();
 
     }
 
     private void login(){
-        ProgressDialog pd = new ProgressDialog(frame,"Logging in","");
+        final ProgressDialog pd = new ProgressDialog(frame,"Logging in","");
         pd.setIsCircular(true);
         pd.showDialog();
 
@@ -252,18 +305,27 @@ public class MainWindow
                     ILoginInfo l = loginInfo;
 
                 }
-                session = new Session(loginInfo, (sender, message) -> {
-                    firePropertyChange(sender,"",message);
-                });
+                session = new Session(loginInfo, new OnSessionInfoChangedListener(){
 
+					@Override
+					public void OnInfoChanged(String sender, Object message) {
+	                    firePropertyChange(sender,"",message);
+					}
+                	
+                });
                 session.login();
 
                 return null;
             }
         };
-        worker.addPropertyChangeListener(evt -> {
-            addMessage(evt.getPropertyName(),evt.getNewValue());
+        worker.addPropertyChangeListener(new PropertyChangeListener(){
+
+			@Override
+			public void propertyChange(PropertyChangeEvent evt) {
+				addMessage(evt.getPropertyName(),evt.getNewValue());			}
+        	
         });
+
         worker.execute();
 
 
@@ -312,6 +374,7 @@ public class MainWindow
             e.printStackTrace();
         }
     }
+    
     @Override
     public void actionPerformed(ActionEvent e) {
         String action = e.getActionCommand();
@@ -341,5 +404,19 @@ public class MainWindow
     public void OnInfoChanged(String sender, Object message) {
         addMessage(sender,message);
     }
+    
+    private static void connectToDockingPort(JComponent component, DefaultDockingPort port) {
+		DockingManager.registerDockable(component);
+		port.dock(component, DockingConstants.CENTER_REGION);
+	}
+    
+    private DefaultDockingPort buildDockingPort(Color color,String desc){
+		DefaultDockingPort port = new DefaultDockingPort();
+		port.setSingleTabAllowed(true);
+		port.setPreferredSize(new Dimension(100, 100));
+		return port;
+
+    }
+   
 
 }

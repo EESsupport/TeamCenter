@@ -127,7 +127,7 @@ public class MessageTable extends JPanel {
 
         TableModelListener l = new TableModelListener() {
             @Override
-            public void tableChanged(TableModelEvent e) {
+            public void tableChanged(final TableModelEvent e) {
                 if (e.getType()==e.INSERT){
                     SwingUtilities.invokeLater(new Runnable() {
                         @Override
